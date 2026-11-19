@@ -4,16 +4,11 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-
-// import Navbar from "./components/Navbar";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
-
-      {/* <Navbar /> */}
-
       <Routes>
         <Route
           path="/"
@@ -39,7 +34,6 @@ function App() {
           }
         />
       </Routes>
-
     </BrowserRouter>
   );
 }

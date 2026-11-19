@@ -2,45 +2,29 @@ import { useState } from "react";
 import { createUser } from "../services/userService";
 
 function AddUserForm({ onClose }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("plus"); // Default is plus
 
-  const [name, setName] =
-    useState("");
+  const handleCreateUser = async () => {
+    try {
+      await createUser({
+        name,
+        email,
+        role
+      });
 
-  const [email, setEmail] =
-    useState("");
-
-  const [role, setRole] =
-    useState("plus");
-
-    const handleCreateUser = async () => {
-  try {
-
-    await createUser(
-      name,
-      email,
-      role
-    );
-
-    alert(
-      "User Added Successfully"
-    );
-
-    onClose();
-
-  } catch (error) {
-
-    alert(error.message);
-
-  }
-};
+      alert("User Added Successfully");
+      onClose();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
       <div className="bg-white rounded-xl shadow-2xl w-[500px] p-8">
-
         <div className="flex justify-between items-center mb-6">
-
           <h2 className="text-2xl font-bold">
             Add User
           </h2>
@@ -51,81 +35,59 @@ function AddUserForm({ onClose }) {
           >
             ✕
           </button>
-
         </div>
 
         {/* Display Name */}
-
         <input
           type="text"
           placeholder="Display Name"
           className="w-full border rounded-lg p-3 mb-4"
           value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
+          onChange={(e) => setName(e.target.value)}
         />
 
         {/* Email */}
-
         <input
           type="email"
           placeholder="User Email"
           className="w-full border rounded-lg p-3 mb-6"
           value={email}
-          onChange={(e) =>
-            setEmail(e.target.value)
-          }
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         {/* Role */}
-
         <h3 className="font-semibold mb-3">
           Role
         </h3>
 
         <div className="flex gap-6 mb-8">
-
-          <label>
+          <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               value="plus"
-              checked={
-                role === "plus"
-              }
-              onChange={(e) =>
-                setRole(e.target.value)
-              }
+              checked={role === "plus"}
+              onChange={(e) => setRole(e.target.value)}
             />
-
             <span className="ml-2">
               Plus
             </span>
           </label>
 
-          <label>
+          <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               value="pro"
-              checked={
-                role === "pro"
-              }
-              onChange={(e) =>
-                setRole(e.target.value)
-              }
+              checked={role === "pro"}
+              onChange={(e) => setRole(e.target.value)}
             />
-
             <span className="ml-2">
               Pro
             </span>
           </label>
-
         </div>
 
         {/* Buttons */}
-
         <div className="flex justify-end gap-4">
-
           <button
             onClick={onClose}
             className="px-5 py-2 border rounded-lg"
@@ -139,11 +101,8 @@ function AddUserForm({ onClose }) {
           >
             Create
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 }

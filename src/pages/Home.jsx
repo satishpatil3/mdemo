@@ -13,8 +13,6 @@ function Home() {
             <h1 className="text-6xl font-bold text-slate-800 mb-6">
               React + Firebase
             </h1>
-
-            
           </div>
 
           {/* Right Signup Card */}
@@ -32,8 +30,6 @@ function Home() {
             >
               Get Started
             </Link>
-
-            
           </div>
         </div>
       </section>

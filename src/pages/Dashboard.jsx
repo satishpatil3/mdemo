@@ -4,6 +4,8 @@ import {
   query,
   where,
   getDocs,
+  setDoc,
+  doc
 } from "firebase/firestore";
 
 import Navbar from "../components/Navbar";
@@ -18,34 +20,49 @@ import { useAuth } from "../hooks/useAuth";
 function Dashboard() {
   const { user } = useAuth();
 
-  const [role, setRole] = useState("");
-  const [loading, setLoading] =
-    useState(true);
+  const [role, setRole] = useState("plus"); // default is plus
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRole = async () => {
       if (!user) return;
 
       try {
+        const cleanEmail = user.email ? user.email.trim().toLowerCase() : "";
         const q = query(
           collection(db, "users"),
-          where(
-            "email",
-            "==",
-            user.email
-          )
+          where("email", "==", cleanEmail)
         );
 
-        const querySnapshot =
-          await getDocs(q);
+        const querySnapshot = await getDocs(q);
 
-        querySnapshot.forEach((doc) => {
-          setRole(doc.data().role);
-        });
+        let userRole = "plus";
+        if (querySnapshot.empty) {
+          // If no document exists in database for this authenticated user, auto-add with plus role
+          try {
+            await setDoc(doc(db, "users", user.uid), {
+              name: user.displayName || cleanEmail.split("@")[0],
+              email: cleanEmail,
+              role: "plus",
+              createdAt: new Date().toISOString()
+            });
+          } catch (createErr) {
+            console.warn("Could not auto-create user doc:", createErr);
+          }
+        } else {
+          querySnapshot.forEach((docSnap) => {
+            const dataRole = docSnap.data().role;
+            if (dataRole) {
+              userRole = dataRole;
+            }
+          });
+        }
 
+        setRole(userRole);
         setLoading(false);
       } catch (error) {
         console.log(error);
+        setRole("plus");
         setLoading(false);
       }
     };

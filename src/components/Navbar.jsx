@@ -11,13 +11,11 @@ function Navbar() {
 
   return (
     <nav className="bg-slate-900 text-white px-8 py-4 flex justify-between items-center">
-
       <h1 className="text-2xl font-bold text-green-400">
         FirebaseApp
       </h1>
 
       <div className="flex gap-6 items-center">
-
         <Link
           to="/dashboard"
           className="hover:text-green-400"
@@ -31,9 +29,7 @@ function Navbar() {
         >
           Logout
         </button>
-
       </div>
-
     </nav>
   );
 }
