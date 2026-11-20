@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { getAllUsers, deleteUser } from "../services/userService";
+import { getAllUsers, deleteUser, normalizeEmail } from "../services/userService";
+import { toast } from "../context/ToastContext";
+import { useAuth } from "../hooks/useAuth";
 
 function ManageUsers({ onClose }) {
+  const { user: currentUser } = useAuth();
+  const currentEmail = normalizeEmail(currentUser?.email);
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -10,7 +15,7 @@ function ManageUsers({ onClose }) {
       const data = await getAllUsers();
       setUsers(data);
     } catch (error) {
-      alert(error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -27,7 +32,7 @@ function ManageUsers({ onClose }) {
       })
       .catch((err) => {
         if (!ignore) {
-          alert(err.message);
+          toast.error(err.message);
           setLoading(false);
         }
       });
@@ -38,13 +43,29 @@ function ManageUsers({ onClose }) {
   }, []);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+    const targetUser = users.find((u) => u.id === id);
+    const targetEmail = normalizeEmail(targetUser?.email);
+
+    // Prevent deleting own logged-in account
+    if (targetEmail === currentEmail) {
+      toast.error("You cannot delete your own account while logged in.");
+      return;
+    }
+
+    // Ensure system always keeps at least one Admin
+    const adminCount = users.filter((u) => u.role === "admin").length;
+    if (targetUser?.role === "admin" && adminCount <= 1) {
+      toast.error("Cannot delete the last remaining Admin account. The system requires at least one active Admin.");
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete ${targetUser?.name || targetUser?.email || "this user"}?`)) {
       try {
         await deleteUser(id);
-        alert("User deleted successfully");
+        toast.success("User deleted successfully");
         loadUsers();
       } catch (error) {
-        alert(error.message);
+        toast.error(error.message);
       }
     }
   };
@@ -54,14 +75,16 @@ function ManageUsers({ onClose }) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold">Manage Users</h2>
-          <p className="text-gray-500 mt-1">View and manage all registered users.</p>
+          <p className="text-gray-500 mt-1">
+            View registered users and admin-added users. Note that only signed-up users can have their roles modified.
+          </p>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-800 text-xl font-bold px-3 py-1 border rounded-lg"
+            className="text-xl"
           >
-            ✕ Close
+            ✕
           </button>
         )}
       </div>
@@ -78,6 +101,7 @@ function ManageUsers({ onClose }) {
                 <th className="p-3">Name</th>
                 <th className="p-3">Email</th>
                 <th className="p-3">Role</th>
+                <th className="p-3">Status</th>
                 <th className="p-3 text-right">Action</th>
               </tr>
             </thead>
@@ -99,13 +123,30 @@ function ManageUsers({ onClose }) {
                       {u.role || "plus"}
                     </span>
                   </td>
+                  <td className="p-3">
+                    {u.isSignedUp ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                        ✓ Signed Up
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                        ⏳ Signup Pending
+                      </span>
+                    )}
+                  </td>
                   <td className="p-3 text-right">
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
-                    >
-                      Delete
-                    </button>
+                    {normalizeEmail(u.email) === currentEmail ? (
+                      <span className="text-xs bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-1 rounded font-semibold inline-block" title="You cannot delete your own active account">
+                        You (Active Admin)
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleDelete(u.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

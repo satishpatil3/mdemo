@@ -2,7 +2,7 @@ export const permissions = {
   admin: [
     "Add User",
     "Manage Users",
-    "Delete User",
+    "Role Management",
     "Analytics",
     "Reports",
     "Settings"

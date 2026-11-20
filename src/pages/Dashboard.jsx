@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   collection,
   query,
   where,
   getDocs,
-  setDoc,
   doc
 } from "firebase/firestore";
 
@@ -16,11 +16,14 @@ import ProDashboard from "./ProDashboard";
 
 import { db } from "../firebase/firebase";
 import { useAuth } from "../hooks/useAuth";
+import { logout } from "../services/authService";
+import { toast } from "../context/ToastContext";
 
 function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [role, setRole] = useState("plus"); // default is plus
+  const [role, setRole] = useState("plus");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,39 +39,50 @@ function Dashboard() {
 
         const querySnapshot = await getDocs(q);
 
-        let userRole = "plus";
         if (querySnapshot.empty) {
-          // If no document exists in database for this authenticated user, auto-add with plus role
-          try {
-            await setDoc(doc(db, "users", user.uid), {
-              name: user.displayName || cleanEmail.split("@")[0],
-              email: cleanEmail,
-              role: "plus",
-              createdAt: new Date().toISOString()
-            });
-          } catch (createErr) {
-            console.warn("Could not auto-create user doc:", createErr);
+          // User was deleted from Firestore database or never completed signup: DO NOT auto-create!
+          toast.error("Account not found in database. Please register on the Signup page first.");
+          await logout();
+          navigate("/login");
+          return;
+        }
+
+        let userRole = "plus";
+        let isSignedUp = false;
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.role) {
+            userRole = data.role;
           }
-        } else {
-          querySnapshot.forEach((docSnap) => {
-            const dataRole = docSnap.data().role;
-            if (dataRole) {
-              userRole = dataRole;
-            }
-          });
+          if (
+            data.role === "admin" ||
+            data.isSignedUp === true ||
+            (data.isSignedUp === undefined && data.source !== "admin" && data.status !== "pending_signup")
+          ) {
+            isSignedUp = true;
+          }
+        });
+
+        if (!isSignedUp) {
+          toast.warning("Signup Pending: You must register on the Signup page before accessing Dashboard.");
+          await logout();
+          navigate("/login");
+          return;
         }
 
         setRole(userRole);
         setLoading(false);
       } catch (error) {
-        console.log(error);
+        console.log("Dashboard role error:", error);
+        toast.error("Error loading profile role");
         setRole("plus");
         setLoading(false);
       }
     };
 
     fetchRole();
-  }, [user]);
+  }, [user, navigate]);
 
   if (loading) {
     return (

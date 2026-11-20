@@ -16,7 +16,7 @@ export const normalizeEmail = (email) => {
   return email ? email.trim().toLowerCase() : "";
 };
 
-// Create a new user (defaults to plus, prevents duplicate emails)
+// Create a new user (admin pre-adds a user: defaults to plus, marked as pending signup)
 export const createUser = async ({ name, email, role = "plus" }) => {
   const cleanEmail = normalizeEmail(email);
 
@@ -40,6 +40,9 @@ export const createUser = async ({ name, email, role = "plus" }) => {
     name: name?.trim() || cleanEmail.split("@")[0],
     email: cleanEmail,
     role: role || "plus", // Default role is plus
+    isSignedUp: false, // Added by admin; has not signed up yet
+    status: "pending_signup",
+    source: "admin",
     createdAt: new Date().toISOString()
   });
 };
@@ -55,6 +58,11 @@ export const getAllUsers = async () => {
     const data = docSnap.data();
     const cleanEmail = data.email ? normalizeEmail(data.email) : docSnap.id;
 
+    // Check if user has actually completed signup
+    const isSignedUp =
+      data.isSignedUp === true ||
+      (data.isSignedUp === undefined && data.source !== "admin" && data.status !== "pending_signup");
+
     // Prevent displaying duplicate records for the same email
     if (!seenEmails.has(cleanEmail)) {
       seenEmails.add(cleanEmail);
@@ -63,6 +71,9 @@ export const getAllUsers = async () => {
         name: data.name || (data.email ? data.email.split("@")[0] : "User"),
         email: data.email || "No email",
         role: data.role || "plus",
+        isSignedUp: isSignedUp,
+        status: isSignedUp ? "signed_up" : "pending_signup",
+        source: data.source || (isSignedUp ? "signup" : "admin"),
         createdAt: data.createdAt || ""
       });
     }
@@ -71,12 +82,18 @@ export const getAllUsers = async () => {
   return users;
 };
 
-// Change user role by email to plus or pro
-export const updateUserRoleByEmail = async (email, newRole) => {
+// Change user role by email to plus, pro, or admin (ONLY signed-up users can be edited; caller cannot demote themselves)
+export const updateUserRoleByEmail = async (email, newRole, callerEmail = "") => {
   const cleanEmail = normalizeEmail(email);
+  const cleanCaller = normalizeEmail(callerEmail);
 
   if (!cleanEmail) {
     throw new Error("Please enter a valid email address");
+  }
+
+  // Self-action protection: an admin cannot change their own access level
+  if (cleanCaller && cleanEmail === cleanCaller) {
+    throw new Error("You cannot change your own access level to prevent locking yourself out.");
   }
 
   const q = query(
@@ -88,6 +105,19 @@ export const updateUserRoleByEmail = async (email, newRole) => {
 
   if (querySnapshot.empty) {
     throw new Error(`No user found with email "${cleanEmail}" in database`);
+  }
+
+  // Verify that the user has completed signup
+  const firstDoc = querySnapshot.docs[0].data();
+
+  const isSignedUp =
+    firstDoc.isSignedUp === true ||
+    (firstDoc.isSignedUp === undefined && firstDoc.source !== "admin" && firstDoc.status !== "pending_signup");
+
+  if (!isSignedUp) {
+    throw new Error(
+      `Cannot edit role: User "${cleanEmail}" is Signup Pending. Only signed-up users can have their roles edited.`
+    );
   }
 
   let isFirst = true;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createUser } from "../services/userService";
+import { toast } from "../context/ToastContext";
 
 function AddUserForm({ onClose }) {
   const [name, setName] = useState("");
@@ -14,10 +15,10 @@ function AddUserForm({ onClose }) {
         role
       });
 
-      alert("User Added Successfully");
+      toast.success("User Added! Status: Signup Pending. (The user must complete signup on the Signup page before their role can be edited).");
       onClose();
     } catch (error) {
-      alert(error.message);
+      toast.error(error.message);
     }
   };
 
@@ -35,6 +36,11 @@ function AddUserForm({ onClose }) {
           >
             ✕
           </button>
+        </div>
+
+        {/* Notice on Signup Requirement */}
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg mb-4">
+          ℹ️ <strong>Note:</strong> Adding a user pre-assigns their account details. The user must complete <strong>Signup</strong> with their email & password before their role can be modified in Role Management.
         </div>
 
         {/* Display Name */}
@@ -82,6 +88,18 @@ function AddUserForm({ onClose }) {
             />
             <span className="ml-2">
               Pro
+            </span>
+          </label>
+
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              value="admin"
+              checked={role === "admin"}
+              onChange={(e) => setRole(e.target.value)}
+            />
+            <span className="ml-2 font-semibold text-yellow-800">
+              Admin
             </span>
           </label>
         </div>

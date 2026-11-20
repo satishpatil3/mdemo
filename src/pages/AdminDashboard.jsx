@@ -25,11 +25,6 @@ function AdminDashboard() {
       onClick: () => setActiveView("roleManagement")
     },
     {
-      title: "Delete Users",
-      description: "Remove unwanted users",
-      onClick: () => setActiveView("manageUsers")
-    },
-    {
       title: "Analytics",
       description: "View system analytics"
     },
